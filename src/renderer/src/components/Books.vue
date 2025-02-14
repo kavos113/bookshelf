@@ -3,23 +3,73 @@
     <div class="content-panel">
       <h1>Books</h1>
       <BookInputForm @submit="searchAndAddBook" />
+
+      <!-- 検索フォームを追加 -->
+      <div class="search-form">
+        <input
+          v-model="searchConfig.title"
+          placeholder="Search by title..."
+          @input="updateFilteredBooks"
+        />
+        <input
+          v-model="searchConfig.publisher"
+          placeholder="Search by publisher..."
+          @input="updateFilteredBooks"
+        />
+        <input
+          v-model="searchConfig.creators"
+          placeholder="Search by authors..."
+          @input="updateFilteredBooks"
+        />
+      </div>
+
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>Title</th>
-              <th>Author</th>
-              <th>NDC</th>
-              <th>Publisher</th>
+              <th @click="sortBy('title')">
+                Title
+                <span v-if="sortConfig.key === 'title'" class="sort-indicator">
+                  {{ sortConfig.order === 'asc' ? '↑' : '↓' }}
+                </span>
+              </th>
+              <th @click="sortBy('creators')">
+                Author
+                <span v-if="sortConfig.key === 'creators'" class="sort-indicator">
+                  {{ sortConfig.order === 'asc' ? '↑' : '↓' }}
+                </span>
+              </th>
+              <th @click="sortBy('ndc')">
+                NDC
+                <span v-if="sortConfig.key === 'ndc'" class="sort-indicator">
+                  {{ sortConfig.order === 'asc' ? '↑' : '↓' }}
+                </span>
+              </th>
+              <th @click="sortBy('publisher')">
+                Publisher
+                <span v-if="sortConfig.key === 'publisher'" class="sort-indicator">
+                  {{ sortConfig.order === 'asc' ? '↑' : '↓' }}
+                </span>
+              </th>
               <th>Tags</th>
-              <th>Location 1</th>
-              <th>Location 2</th>
+              <th @click="sortBy('location1')">
+                Location 1
+                <span v-if="sortConfig.key === 'location1'" class="sort-indicator">
+                  {{ sortConfig.order === 'asc' ? '↑' : '↓' }}
+                </span>
+              </th>
+              <th @click="sortBy('location2')">
+                Location 2
+                <span v-if="sortConfig.key === 'location2'" class="sort-indicator">
+                  {{ sortConfig.order === 'asc' ? '↑' : '↓' }}
+                </span>
+              </th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
             <tr
-              v-for="book in books"
+              v-for="book in filteredBooks"
               :key="book.id"
               :class="{ selected: selectedBook?.id === book.id }"
               @click="selectBook(book)"
@@ -49,13 +99,46 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Book } from '../../../types'
 import BookDetails from './BookDetails.vue'
 import BookInputForm from './BookInputForm.vue'
+import { sortBooks, searchBooks, type SortConfig, type SearchConfig } from '../utils/bookUtils'
+import { debounce } from '../utils/debounceUtils'
 
 const books = ref<Book[]>([])
 const selectedBook = ref<Book | null>(null)
+
+const sortConfig = ref<SortConfig>({
+  key: 'title',
+  order: 'asc'
+})
+
+const searchConfig = ref<SearchConfig>({
+  title: '',
+  publisher: '',
+  creators: ''
+})
+
+const filteredBooks = computed(() => {
+  const searchedBooks = searchBooks(books.value, searchConfig.value)
+  return sortBooks(searchedBooks, sortConfig.value)
+})
+
+const sortBy = (key: SortConfig['key']) => {
+  if (sortConfig.value.key === key) {
+    sortConfig.value.order = sortConfig.value.order === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortConfig.value = {
+      key,
+      order: 'asc'
+    }
+  }
+}
+
+const updateFilteredBooks = debounce(() => {
+  // 検索時の処理をdebounceする（300ms）
+}, 300)
 
 const selectBook = (book: Book) => {
   selectedBook.value = book
@@ -98,16 +181,20 @@ const deleteBook = async (id: number) => {
   fetchBooks()
 }
 
-const updateBookLocation = async () => {
+const updateBookLocation = async (location1: string, location2: string) => {
   if (!selectedBook.value) return
-
   try {
     await window.electron.ipcRenderer.invoke('update-book-location', {
       id: selectedBook.value.id,
-      location1: selectedBook.value.location1,
-      location2: selectedBook.value.location2
+      location1,
+      location2
     })
-    fetchBooks()
+    await fetchBooks()
+    // 選択中の本も更新する
+    const currentId = selectedBook.value.id
+    if (currentId) {
+      selectedBook.value = books.value.find((b) => b.id === currentId) ?? null
+    }
   } catch (error) {
     console.error('Error updating book location:', error)
   }
@@ -148,6 +235,11 @@ td {
   border-bottom: 1px solid var(--color-border);
 }
 
+td {
+  font-size: 0.8em;
+  padding: 0 12px;
+}
+
 th {
   background: var(--color-background-soft);
   font-weight: 600;
@@ -182,5 +274,40 @@ tr.selected {
 
 .delete-btn:hover {
   background-color: #da190b;
+}
+
+.search-form {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.search-form input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.search-form input:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+
+th {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+th:hover {
+  background: var(--color-background-mute);
+}
+
+.sort-indicator {
+  margin-left: 4px;
+  display: inline-block;
+  font-size: 0.8em;
 }
 </style>
