@@ -54,6 +54,16 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  ipcMain.handle('fetch-book-data', async (_event, isbn: string) => {
+    try {
+      const bookData = await fetchBookDataFromNDL(isbn)
+      return bookData
+    } catch (error) {
+      console.error('Error in fetch-book-data:', error)
+      throw error
+    }
+  })
+
   ipcMain.handle('add-book', async (_event, book: Book) => {
     const {
       isbn,
@@ -201,14 +211,20 @@ app.whenReady().then(() => {
     })
   })
 
-  ipcMain.handle('fetch-book-data', async (_event, isbn: string) => {
-    try {
-      const bookData = await fetchBookDataFromNDL(isbn)
-      return bookData
-    } catch (error) {
-      console.error('Error in fetch-book-data:', error)
-      throw error
-    }
+  ipcMain.handle('update-book-location', async (_event, { id, location1, location2 }) => {
+    return new Promise<void>((resolve, reject) => {
+      db.run(
+        'UPDATE books SET location1 = ?, location2 = ? WHERE id = ?',
+        [location1, location2, id],
+        (err) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve()
+          }
+        }
+      )
+    })
   })
 
   createWindow()
