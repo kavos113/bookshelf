@@ -82,7 +82,7 @@
           <div class="detail-item">
             <label>Tags:</label>
             <div class="tags-container">
-              <span v-for="tag in book.tags" :key="tag.id">
+              <span v-for="tag in book?.tags ?? []" :key="tag.id">
                 <span class="tag">
                   {{ tag.name }}
                   <button
@@ -97,9 +97,9 @@
             </div>
             <div class="tag-input-container">
               <input
+                v-model="newTagName"
                 class="tag-input"
                 placeholder="新しいタグ(Enterで追加)"
-                v-model="newTagName"
                 @keyup.enter="addNewTag"
               />
               <select v-model="selectedExistingTagId" class="tag-select">
@@ -126,6 +126,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { Book, Tag } from '../../../types'
+import { showToast } from '../utils/toastUtils'
 
 const props = defineProps<{
   book: Book | null
@@ -180,12 +181,13 @@ async function addNewTag() {
       bookId: props.book.id,
       tagId: tag.id
     })
+    showToast(`タグ「${tag.name}」を追加しました`, 'success')
     newTagName.value = ''
     emit('update')
     await loadAvailableTags()
-    console.log(availableTags.value)
   } catch (error) {
     console.error('Error adding new tag:', error)
+    showToast('タグの追加に失敗しました', 'error')
   }
 }
 
@@ -193,28 +195,34 @@ async function addExistingTag() {
   if (!props.book || !selectedExistingTagId.value) return
 
   try {
+    const tag = availableTags.value.find((t) => t.id === selectedExistingTagId.value)
     await window.electron.ipcRenderer.invoke('add-book-tag', {
       bookId: props.book.id,
       tagId: selectedExistingTagId.value
     })
+    showToast(`タグ「${tag?.name}」を追加しました`, 'success')
     selectedExistingTagId.value = ''
     emit('update')
   } catch (error) {
     console.error('Error adding existing tag:', error)
+    showToast('タグの追加に失敗しました', 'error')
   }
 }
 
 async function removeTag(tagId: number) {
-  if (!props.book) return
+  if (!props.book?.tags) return
 
   try {
+    const tag = props.book.tags.find((t) => t.id === tagId)
     await window.electron.ipcRenderer.invoke('remove-book-tag', {
       bookId: props.book.id,
       tagId
     })
+    showToast(`タグ「${tag?.name}」を削除しました`, 'success')
     emit('update')
   } catch (error) {
     console.error('Error removing tag:', error)
+    showToast('タグの削除に失敗しました', 'error')
   }
 }
 </script>

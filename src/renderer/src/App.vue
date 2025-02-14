@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import Books from './components/Books.vue'
+import Toast from './components/Toast.vue'
 </script>
 
 <template>
   <div class="container">
     <Books />
+    <Toast />
   </div>
 </template>
 

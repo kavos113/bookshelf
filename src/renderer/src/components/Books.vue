@@ -139,6 +139,7 @@ import BookDetails from './BookDetails.vue'
 import BookInputForm from './BookInputForm.vue'
 import { sortBooks, searchBooks, type SortConfig, type SearchConfig } from '../utils/bookUtils'
 import { debounce } from '../utils/debounceUtils'
+import { showToast } from '../utils/toastUtils'
 
 const books = ref<Book[]>([])
 const selectedBook = ref<Book | null>(null)
@@ -202,9 +203,11 @@ const searchAndAddBook = async ({
     bookData.location2 = location2
 
     await window.electron.ipcRenderer.invoke('add-book', bookData)
+    showToast(`「${bookData.title}」を追加しました`, 'success')
     fetchBooks()
   } catch (error) {
     console.error('Error processing book data:', error)
+    showToast('本の追加に失敗しました', 'error')
   }
 }
 
@@ -216,8 +219,14 @@ const deleteBook = async (id: number) => {
   if (selectedBook.value?.id === id) {
     selectedBook.value = null
   }
-  await window.electron.ipcRenderer.invoke('delete-book', id)
-  fetchBooks()
+  try {
+    await window.electron.ipcRenderer.invoke('delete-book', id)
+    showToast('本を削除しました', 'success')
+    fetchBooks()
+  } catch (error) {
+    console.error('Error deleting book:', error)
+    showToast('本の削除に失敗しました', 'error')
+  }
 }
 
 const updateBookLocation = async (location1: string, location2: string) => {
@@ -229,13 +238,14 @@ const updateBookLocation = async (location1: string, location2: string) => {
       location2
     })
     await fetchBooks()
-    // 選択中の本も更新する
     const currentId = selectedBook.value.id
     if (currentId) {
       selectedBook.value = books.value.find((b) => b.id === currentId) ?? null
     }
+    showToast('場所情報を更新しました', 'success')
   } catch (error) {
     console.error('Error updating book location:', error)
+    showToast('場所情報の更新に失敗しました', 'error')
   }
 }
 
