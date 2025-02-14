@@ -21,6 +21,7 @@ export interface SearchConfig {
   title?: string
   publisher?: string
   creators?: string
+  tagIds?: number[]
 }
 
 export function searchBooks(books: Book[], search: SearchConfig): Book[] {
@@ -31,6 +32,10 @@ export function searchBooks(books: Book[], search: SearchConfig): Book[] {
       !search.publisher || book.publisher.toLowerCase().includes(search.publisher.toLowerCase())
     const matchCreators =
       !search.creators || book.creators.toLowerCase().includes(search.creators.toLowerCase())
-    return matchTitle && matchPublisher && matchCreators
+    const matchTags =
+      !search.tagIds?.length ||
+      search.tagIds.every((tagId) => book.tags.some((tag) => tag.id === tagId))
+
+    return matchTitle && matchPublisher && matchCreators && matchTags
   })
 }

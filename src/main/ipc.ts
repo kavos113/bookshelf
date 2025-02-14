@@ -1,5 +1,13 @@
+import {
+  db,
+  fetchBookDataFromNDL,
+  addTag,
+  getAllTags,
+  addBookTag,
+  removeBookTag,
+  getBooksByTagIds
+} from './database'
 import { ipcMain } from 'electron'
-import { db, fetchBookDataFromNDL } from './database'
 import { Book, Tag } from '../types'
 
 export function setupIpcHandlers(): void {
@@ -174,5 +182,53 @@ export function setupIpcHandlers(): void {
         }
       )
     })
+  })
+
+  ipcMain.handle('add-tag', async (_event, name: string) => {
+    try {
+      const tagId = await addTag(name)
+      return { id: tagId, name }
+    } catch (error) {
+      console.error('Error in add-tag:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('get-all-tags', async () => {
+    try {
+      return await getAllTags()
+    } catch (error) {
+      console.error('Error in get-all-tags:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('add-book-tag', async (_event, { bookId, tagId }) => {
+    try {
+      await addBookTag(bookId, tagId)
+      return { success: true }
+    } catch (error) {
+      console.error('Error in add-book-tag:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('remove-book-tag', async (_event, { bookId, tagId }) => {
+    try {
+      await removeBookTag(bookId, tagId)
+      return { success: true }
+    } catch (error) {
+      console.error('Error in remove-book-tag:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('get-books-by-tags', async (_event, tagIds: number[]) => {
+    try {
+      return await getBooksByTagIds(tagIds)
+    } catch (error) {
+      console.error('Error in get-books-by-tags:', error)
+      throw error
+    }
   })
 }

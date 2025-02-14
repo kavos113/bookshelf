@@ -4,23 +4,52 @@
       <h1>Books</h1>
       <BookInputForm @submit="searchAndAddBook" />
 
-      <!-- 検索フォームを追加 -->
+      <!-- 検索フォーム -->
       <div class="search-form">
-        <input
-          v-model="searchConfig.title"
-          placeholder="Search by title..."
-          @input="updateFilteredBooks"
-        />
-        <input
-          v-model="searchConfig.publisher"
-          placeholder="Search by publisher..."
-          @input="updateFilteredBooks"
-        />
-        <input
-          v-model="searchConfig.creators"
-          placeholder="Search by authors..."
-          @input="updateFilteredBooks"
-        />
+        <div class="text-search">
+          <input
+            v-model="searchConfig.title"
+            placeholder="Search by title..."
+            @input="updateFilteredBooks"
+          />
+          <input
+            v-model="searchConfig.publisher"
+            placeholder="Search by publisher..."
+            @input="updateFilteredBooks"
+          />
+          <input
+            v-model="searchConfig.creators"
+            placeholder="Search by authors..."
+            @input="updateFilteredBooks"
+          />
+        </div>
+
+        <!-- タグ検索 -->
+        <div class="tag-search">
+          <select
+            v-model="selectedTagId"
+            class="tag-select"
+            @change="addSearchTag"
+            @click="loadAvailableTags"
+          >
+            <option value="">タグを選択</option>
+            <option v-for="tag in availableTags" :key="tag.id" :value="tag.id">
+              {{ tag.name }}
+            </option>
+          </select>
+          <div class="tags-container">
+            <span v-for="tag in selectedTags" :key="tag.id" class="tag">
+              {{ tag.name }}
+              <button
+                v-if="tag.id !== undefined"
+                class="tag-remove-btn"
+                @click="tag.id && removeSearchTag(tag.id)"
+              >
+                ×
+              </button>
+            </span>
+          </div>
+        </div>
       </div>
 
       <div class="table-container">
@@ -94,13 +123,18 @@
       </div>
     </div>
 
-    <BookDetails :book="selectedBook" @close="closeDetails" @update-location="updateBookLocation" />
+    <BookDetails
+      :book="selectedBook"
+      @close="closeDetails"
+      @update-location="updateBookLocation"
+      @update="fetchBooks"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Book } from '../../../types'
+import { Book, Tag } from '../../../types'
 import BookDetails from './BookDetails.vue'
 import BookInputForm from './BookInputForm.vue'
 import { sortBooks, searchBooks, type SortConfig, type SearchConfig } from '../utils/bookUtils'
@@ -117,8 +151,13 @@ const sortConfig = ref<SortConfig>({
 const searchConfig = ref<SearchConfig>({
   title: '',
   publisher: '',
-  creators: ''
+  creators: '',
+  tagIds: []
 })
+
+const availableTags = ref<Tag[]>([])
+const selectedTags = ref<Tag[]>([])
+const selectedTagId = ref<number | ''>('')
 
 const filteredBooks = computed(() => {
   const searchedBooks = searchBooks(books.value, searchConfig.value)
@@ -200,7 +239,39 @@ const updateBookLocation = async (location1: string, location2: string) => {
   }
 }
 
-onMounted(fetchBooks)
+async function loadAvailableTags() {
+  try {
+    availableTags.value = await window.electron.ipcRenderer.invoke('get-all-tags')
+  } catch (error) {
+    console.error('Error loading tags:', error)
+  }
+}
+
+function addSearchTag() {
+  if (!selectedTagId.value) return
+
+  const tag = availableTags.value.find((t) => t.id === selectedTagId.value)
+  if (tag && !selectedTags.value.some((t) => t.id === tag.id) && tag.id !== undefined) {
+    selectedTags.value.push(tag)
+    const validTagIds = selectedTags.value
+      .map((t) => t.id!)
+      .filter((id): id is number => id !== undefined)
+    searchConfig.value.tagIds = validTagIds
+    selectedTagId.value = ''
+  }
+}
+
+function removeSearchTag(tagId: number) {
+  selectedTags.value = selectedTags.value.filter((t) => t.id !== tagId)
+  const validTagIds = selectedTags.value
+    .map((t) => t.id!)
+    .filter((id): id is number => id !== undefined)
+  searchConfig.value.tagIds = validTagIds
+}
+
+onMounted(async () => {
+  await Promise.all([fetchBooks(), loadAvailableTags()])
+})
 </script>
 
 <style scoped>
@@ -278,11 +349,17 @@ tr.selected {
 
 .search-form {
   display: flex;
+  flex-direction: column;
   gap: 12px;
   margin: 20px 0;
 }
 
-.search-form input {
+.text-search {
+  display: flex;
+  gap: 12px;
+}
+
+.text-search input {
   flex: 1;
   padding: 8px 12px;
   border: 1px solid var(--color-border);
@@ -290,9 +367,51 @@ tr.selected {
   font-size: 0.9em;
 }
 
-.search-form input:focus {
-  outline: none;
-  border-color: #4caf50;
+.tag-search {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.tag {
+  position: relative;
+  display: inline-block;
+  padding: 2px 24px 2px 8px;
+  background: var(--ev-c-gray-1);
+  border-radius: 12px;
+  font-size: 0.8em;
+}
+
+.tag-remove-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 12px;
+}
+
+.tag-remove-btn:hover {
+  color: #f44336;
+}
+
+.tag-select {
+  min-width: 150px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.9em;
 }
 
 th {
