@@ -44,7 +44,7 @@ onMounted(loadAvailableTags)
       </option>
     </select>
     <div class="tags-container">
-      <span v-for="tag in selectedTags" :key="tag.id" class="tag">
+      <span v-for="tag in props.selectedTags" :key="tag.id" class="tag">
         {{ tag.name }}
         <button
           v-if="tag.id !== undefined"

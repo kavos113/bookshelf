@@ -21,5 +21,5 @@ export interface Book {
   location1?: string
   location2?: string
   url: string
-  tags?: Tag[]
+  tags: Tag[]
 }

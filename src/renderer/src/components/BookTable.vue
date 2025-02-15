@@ -79,9 +79,9 @@ const sortBy = (key: SortConfig['key']) => {
       </thead>
       <tbody>
         <tr
-          v-for="book in books"
+          v-for="book in props.books"
           :key="book.id"
-          :class="{ selected: selectedBookId === book.id }"
+          :class="{ selected: props.selectedBookId === book.id }"
           @click="$emit('select', book)"
         >
           <td>{{ book.title }}</td>
