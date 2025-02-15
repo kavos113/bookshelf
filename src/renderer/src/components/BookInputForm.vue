@@ -1,14 +1,3 @@
-<template>
-  <div class="input-form">
-    <div class="input-row">
-      <input v-model="isbn" placeholder="ISBN" required @keyup.enter="submit" />
-      <input v-model="location1" placeholder="Location 1" @keyup.enter="submit" />
-      <input v-model="location2" placeholder="Location 2" @keyup.enter="submit" />
-    </div>
-    <button @click="submit">Add Book</button>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref } from 'vue'
 
@@ -32,6 +21,17 @@ function submit() {
   location2.value = ''
 }
 </script>
+
+<template>
+  <div class="input-form">
+    <div class="input-row">
+      <input v-model="isbn" placeholder="ISBN" required @keyup.enter="submit" />
+      <input v-model="location1" placeholder="Location 1" @keyup.enter="submit" />
+      <input v-model="location2" placeholder="Location 2" @keyup.enter="submit" />
+    </div>
+    <button @click="submit">Add Book</button>
+  </div>
+</template>
 
 <style scoped>
 .input-form {

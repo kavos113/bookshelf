@@ -1,3 +1,8 @@
+<script setup lang="ts">
+import { useToast } from '../utils/toastUtils'
+const { toasts, removeToast } = useToast()
+</script>
+
 <template>
   <div class="toast-container">
     <TransitionGroup name="toast">
@@ -13,11 +18,6 @@
     </TransitionGroup>
   </div>
 </template>
-
-<script setup lang="ts">
-import { useToast } from '../utils/toastUtils'
-const { toasts, removeToast } = useToast()
-</script>
 
 <style scoped>
 .toast-container {
