@@ -17,8 +17,6 @@ function submit() {
     location2: location2.value
   })
   isbn.value = ''
-  location1.value = ''
-  location2.value = ''
 }
 </script>
 
