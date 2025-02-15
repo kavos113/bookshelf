@@ -67,8 +67,6 @@ async function fetchBookDataFromNDL(isbn: string): Promise<Book> {
     const response = await axios.get(apiUrl)
     const result = await parseStringPromise(response.data)
 
-    console.log('Result:', result)
-
     const records = result.searchRetrieveResponse?.records?.[0]?.record
     if (!records || records.length === 0) {
       throw new Error('Book not found')
@@ -101,15 +99,22 @@ async function fetchBookDataFromNDL(isbn: string): Promise<Book> {
       tags: []
     }
 
-    console.log('Book data:', bookData)
-
     // Extract NDC
     const subjects = bibResource['dcterms:subject'] || []
     for (const subject of subjects) {
       if (subject?.['rdf:resource']?.[0]?.includes('ndc')) {
+        console.log('NDC:', subject['rdf:resource'][0])
         const ndcMatch = subject['rdf:resource'][0].match(/ndc[89]\/([0-9.]+)/)
         if (ndcMatch) {
           bookData.ndc = ndcMatch[1]
+          break
+        }
+      } else if (subject?.['$']?.['rdf:resource']?.includes('ndc')) {
+        console.log('NDC:', subject['$']['rdf:resource'])
+        const ndcMatch = subject['$']['rdf:resource'].match(/ndc[89]\/([0-9.]+)/)
+        if (ndcMatch) {
+          bookData.ndc = ndcMatch[1]
+          console.log('NDC:', bookData.ndc)
           break
         }
       }
