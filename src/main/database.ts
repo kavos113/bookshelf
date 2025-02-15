@@ -1,11 +1,9 @@
 import { Database } from 'sqlite3'
-import { join } from 'path'
 import axios from 'axios'
 import { parseStringPromise } from 'xml2js'
 import { Book } from '../types'
 
-const dbPath = join(__dirname, '../../resources/database.sqlite')
-const db = new Database(dbPath, (err) => {
+const db = new Database('./database.sqlite', (err) => {
   if (err) {
     console.error('Error opening database', err)
   } else {
