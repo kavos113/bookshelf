@@ -7,6 +7,15 @@ const props = defineProps<{
   book: Book | null
 }>()
 
+const book = ref(props.book)
+
+watch(
+  () => props.book,
+  (newBook) => {
+    book.value = newBook
+  }
+)
+
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'update-location', location1: string, location2: string): void
@@ -29,6 +38,20 @@ watch(
 
 const updateLocation = () => {
   emit('update-location', localLocation1.value, localLocation2.value)
+}
+
+async function handleTagUpdate() {
+  if (!book.value?.id) return
+  
+  const updatedTags = await window.electron.ipcRenderer.invoke(
+    'get-tags-by-book-id',
+    book.value.id
+  )
+  
+  if (book.value) {
+    book.value.tags = updatedTags
+  }
+  emit('update')
 }
 </script>
 
@@ -119,7 +142,7 @@ const updateLocation = () => {
               v-if="book.id"
               :book-id="book.id"
               :book-tags="book.tags ?? []"
-              @update="$emit('update')"
+              @update="handleTagUpdate"
             />
           </div>
         </div>

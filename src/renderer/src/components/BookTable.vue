@@ -12,7 +12,10 @@ const emit = defineEmits<{
   (e: 'sort', config: SortConfig): void
   (e: 'select', book: Book): void
   (e: 'delete', id: number): void
+  (e: 'selectionChange', ids: number[]): void
 }>()
+
+const selectedIds = ref<Set<number>>(new Set())
 
 const sortConfig = ref<SortConfig>({
   key: 'title',
@@ -30,6 +33,37 @@ const sortBy = (key: SortConfig['key']) => {
   }
   emit('sort', sortConfig.value)
 }
+
+const toggleSelection = (book: Book, event: Event) => {
+  event.stopPropagation()
+  if (!book.id) return
+
+  if (selectedIds.value.has(book.id)) {
+    selectedIds.value.delete(book.id)
+  } else {
+    selectedIds.value.add(book.id)
+  }
+
+  emit('selectionChange', Array.from(selectedIds.value))
+}
+
+const toggleAllSelection = (event: Event) => {
+  event.stopPropagation()
+  const validBookIds = props.books
+    .map((book) => book.id)
+    .filter((id): id is number => id !== undefined)
+
+  if (selectedIds.value.size === validBookIds.length) {
+    selectedIds.value.clear()
+  } else {
+    selectedIds.value = new Set(validBookIds)
+  }
+  emit('selectionChange', Array.from(selectedIds.value))
+}
+
+const isSelected = (bookId: number | undefined): boolean => {
+  return bookId !== undefined && selectedIds.value.has(bookId)
+}
 </script>
 
 <template>
@@ -37,6 +71,14 @@ const sortBy = (key: SortConfig['key']) => {
     <table>
       <thead>
         <tr>
+          <th>
+            <input
+              type="checkbox"
+              :checked="selectedIds.size === books.length && books.length > 0"
+              :indeterminate="selectedIds.size > 0 && selectedIds.size < books.length"
+              @click="toggleAllSelection"
+            />
+          </th>
           <th @click="sortBy('title')">
             Title
             <span v-if="sortConfig.key === 'title'" class="sort-indicator">
@@ -84,6 +126,13 @@ const sortBy = (key: SortConfig['key']) => {
           :class="{ selected: props.selectedBookId === book.id }"
           @click="$emit('select', book)"
         >
+          <td @click.stop>
+            <input
+              type="checkbox"
+              :checked="isSelected(book.id)"
+              @click="toggleSelection(book, $event)"
+            />
+          </td>
           <td>{{ book.title }}</td>
           <td>{{ book.creators }}</td>
           <td>{{ book.ndc }}</td>
@@ -172,5 +221,16 @@ tr.selected {
   margin-left: 4px;
   display: inline-block;
   font-size: 0.8em;
+}
+
+input[type='checkbox'] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+td:first-child {
+  width: 40px;
+  text-align: center;
 }
 </style>

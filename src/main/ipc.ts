@@ -5,7 +5,8 @@ import {
   getAllTags,
   addBookTag,
   removeBookTag,
-  getBooksByTagIds
+  getBooksByTagIds,
+  getTagsByBookId
 } from './database'
 import { ipcMain } from 'electron'
 import { Book, Tag } from '../types'
@@ -228,6 +229,15 @@ export function setupIpcHandlers(): void {
       return await getBooksByTagIds(tagIds)
     } catch (error) {
       console.error('Error in get-books-by-tags:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('get-tags-by-book-id', async (_event, bookId: number) => {
+    try {
+      return await getTagsByBookId(bookId)
+    } catch (error) {
+      console.error('Error in get-tags-by-book-id:', error)
       throw error
     }
   })

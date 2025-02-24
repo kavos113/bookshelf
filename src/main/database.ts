@@ -37,7 +37,7 @@ const db = new Database('./database.sqlite', (err) => {
     db.run(
       `CREATE TABLE IF NOT EXISTS tags (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL
+      name TEXT NOT NULL UNIQUE
     )`,
       (err) => {
         if (err) {
@@ -50,7 +50,8 @@ const db = new Database('./database.sqlite', (err) => {
       book_id INTEGER NOT NULL,
       tag_id INTEGER NOT NULL,
       FOREIGN KEY (book_id) REFERENCES books(id),
-      FOREIGN KEY (tag_id) REFERENCES tags(id)
+      FOREIGN KEY (tag_id) REFERENCES tags(id),
+      UNIQUE(book_id, tag_id)
     )`,
       (err) => {
         if (err) {
@@ -129,13 +130,31 @@ async function fetchBookDataFromNDL(isbn: string): Promise<Book> {
 
 function addTag(name: string): Promise<number> {
   return new Promise((resolve, reject) => {
-    db.run('INSERT INTO tags (name) VALUES (?)', [name], function (err) {
-      if (err) {
-        reject(err)
-        return
+    // まず既存のタグを探す
+    db.get<{ id: number }>(
+      'SELECT id FROM tags WHERE LOWER(name) = LOWER(?)',
+      [name],
+      (err, row) => {
+        if (err) {
+          reject(err)
+          return
+        }
+
+        if (row) {
+          // 既存のタグが見つかった場合はそのIDを返す
+          resolve(row.id)
+        } else {
+          // 新しいタグを追加
+          db.run('INSERT INTO tags (name) VALUES (?)', [name], function (err) {
+            if (err) {
+              reject(err)
+              return
+            }
+            resolve(this.lastID)
+          })
+        }
       }
-      resolve(this.lastID)
-    })
+    )
   })
 }
 
@@ -172,13 +191,17 @@ function getAllTags(): Promise<{ id: number; name: string }[]> {
 
 function addBookTag(bookId: number, tagId: number): Promise<void> {
   return new Promise((resolve, reject) => {
-    db.run('INSERT INTO book_tags (book_id, tag_id) VALUES (?, ?)', [bookId, tagId], (err) => {
-      if (err) {
-        reject(err)
-        return
+    db.run(
+      'INSERT OR IGNORE INTO book_tags (book_id, tag_id) VALUES (?, ?)',
+      [bookId, tagId],
+      (err) => {
+        if (err) {
+          reject(err)
+          return
+        }
+        resolve()
       }
-      resolve()
-    })
+    )
   })
 }
 

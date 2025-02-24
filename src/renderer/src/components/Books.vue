@@ -5,6 +5,7 @@ import BookDetails from './BookDetails.vue'
 import BookInputForm from './BookInputForm.vue'
 import BookTable from './BookTable.vue'
 import Search from './Search.vue'
+import BulkTagManager from './BulkTagManager.vue'
 import { sortBooks, searchBooks, type SortConfig, type SearchConfig } from '../utils/bookUtils'
 import { showToast } from '../utils/toastUtils'
 
@@ -103,6 +104,16 @@ const updateBookLocation = async (location1: string, location2: string) => {
   }
 }
 
+const selectedBookIds = ref<number[]>([])
+
+const handleSelectionChange = (ids: number[]) => {
+  selectedBookIds.value = ids
+}
+
+const handleBulkTagUpdate = async () => {
+  await fetchBooks()
+}
+
 onMounted(fetchBooks)
 </script>
 
@@ -112,12 +123,18 @@ onMounted(fetchBooks)
       <h1>Books</h1>
       <BookInputForm @submit="searchAndAddBook" />
       <Search @update="updateSearch" />
+      <BulkTagManager
+        :selected-book-ids="selectedBookIds"
+        :books="books"
+        @update="handleBulkTagUpdate"
+      />
       <BookTable
         :books="filteredBooks"
         :selected-book-id="selectedBook?.id"
         @sort="updateSort"
         @select="selectBook"
         @delete="deleteBook"
+        @selection-change="handleSelectionChange"
       />
     </div>
 
