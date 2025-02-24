@@ -42,12 +42,9 @@ const updateLocation = () => {
 
 async function handleTagUpdate() {
   if (!book.value?.id) return
-  
-  const updatedTags = await window.electron.ipcRenderer.invoke(
-    'get-tags-by-book-id',
-    book.value.id
-  )
-  
+
+  const updatedTags = await window.electron.ipcRenderer.invoke('get-tags-by-book-id', book.value.id)
+
   if (book.value) {
     book.value.tags = updatedTags
   }

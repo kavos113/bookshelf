@@ -17,8 +17,8 @@ const selectedExistingTagId = ref<number | ''>('')
 const availableTags = ref<Tag[]>([])
 const bulkTagInput = ref('')
 
-const addedTags: string[] = []
-const duplicateTags: string[] = []
+// const addedTags: string[] = []
+// const duplicateTags: string[] = []
 
 onMounted(loadAvailableTags)
 
